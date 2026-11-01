@@ -357,6 +357,38 @@ label.swatch{position:relative;display:block;cursor:pointer;overflow:hidden}
 .sitem .sdot{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink);flex:none}
 .sitem .st{font-weight:600}
 .sempty{padding:12px;color:var(--muted)}
+dialog#libDlg{width:min(1040px,calc(100vw - 28px))}
+.libtools{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.libtools input[type=search]{flex:1;min-width:200px;border-radius:999px}
+.bulkbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border:2.5px solid var(--ink);border-radius:16px;background-color:var(--butter);box-shadow:3px 3px 0 var(--ink)}
+.bulkbar .bcount{font-weight:600;margin-right:4px}
+.bulkbar select{width:auto;padding:7px 10px;font-size:14px;box-shadow:2px 2px 0 var(--ink)}
+.libhead,.lrw{display:grid;grid-template-columns:30px 48px minmax(150px,1fr) 46px 170px 150px 84px;gap:10px;align-items:center}
+.libhead{font:600 12px var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:0 15px;margin-bottom:-8px}
+.libgrid{list-style:none;margin:0;padding:3px 6px 6px 3px;display:grid;gap:10px;max-height:46vh;overflow:auto}
+.lrw{padding:9px 12px;border:2.5px solid var(--ink);border-radius:16px;background-color:color-mix(in srgb,var(--c) 22%,#fff);box-shadow:3px 3px 0 var(--ink)}
+.lrw.off{background-color:#fff}
+.lrw.sel{outline:3px solid var(--blue);outline-offset:2px}
+.lrw .tog span{white-space:nowrap}
+.lck{display:grid;place-items:center}
+.lck input{appearance:none;-webkit-appearance:none;width:24px;height:24px;border:2.5px solid var(--ink);border-radius:7px;background:#fff;margin:0;cursor:pointer;display:grid;place-items:center;padding:0;box-shadow:none}
+.lck input:checked{background:var(--yellow)}
+.lck input:checked::after{content:'✓';font:700 15px/1 var(--f-body);color:var(--ink)}
+.lemo{width:44px;height:44px;border:2.5px solid var(--ink);border-radius:12px;background-color:#fff;font-size:24px;line-height:1;padding:0;box-shadow:2px 2px 0 var(--ink)}
+.lemo:hover{background-color:var(--butter)}
+.lname{padding:9px 12px;box-shadow:none;border-radius:12px;font-weight:600}
+.lcol{width:44px;height:44px;border-radius:50%;border:0;background:transparent;padding:0;display:grid;place-items:center}
+.lcol .sw{width:30px;height:30px;border-radius:50%;background:var(--c);border:2.5px solid var(--ink);box-shadow:2px 2px 0 var(--ink);transition:transform .1s}
+.lcol:hover .sw{transform:scale(1.1)}
+.ltag{box-shadow:none;border-radius:12px;padding:8px 10px;font-size:15px}
+.lact{display:flex;gap:2px;justify-content:flex-end}
+.epop{position:fixed;z-index:60;width:min(390px,calc(100vw - 32px));box-shadow:4px 4px 0 var(--ink)}
+.cpop{position:fixed;z-index:60;width:min(340px,calc(100vw - 32px));background-color:var(--paper);border:2.5px solid var(--ink);border-radius:18px;padding:14px;box-shadow:4px 4px 0 var(--ink)}
+@media (max-width:760px){
+  .libhead{display:none}
+  .lrw{grid-template-columns:42px 46px 1fr 84px;grid-template-areas:"ck em nm nm" "co tg tg tg" "pn pn pn ac"}
+  .lrw .lck{grid-area:ck}.lrw .lemo{grid-area:em}.lrw .lname{grid-area:nm}.lrw .lcol{grid-area:co}.lrw .ltag{grid-area:tg}.lrw .tog{grid-area:pn}.lrw .lact{grid-area:ac}
+}
 @media (max-width:720px){
   .dd{position:static}
   .controls{gap:10px}
@@ -426,6 +458,7 @@ label.swatch{position:relative;display:block;cursor:pointer;overflow:hidden}
         <section class="filters" id="filters" aria-label="Filtrar por assunto"></section>
       </div>
     </div>
+    <button class="btn ddbtn" type="button" id="openLibBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg> Editar hábitos</button>
     <div class="search" id="search" role="search">
       <svg class="sicon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
       <input type="search" id="q" placeholder="Buscar hábito ou data (ex.: 24/10)" autocomplete="off" aria-label="Buscar hábito ou data" aria-controls="sresults">
@@ -541,17 +574,25 @@ label.swatch{position:relative;display:block;cursor:pointer;overflow:hidden}
   </form>
 </dialog>
 
-<!-- Meus hábitos -->
+<!-- Meus hábitos: editor em massa -->
 <dialog id="libDlg" aria-labelledby="libTitle">
   <div class="dlg">
-    <h2 id="libTitle">Meus hábitos</h2>
-    <p class="hint">Ligue os que devem ficar fixos na agenda. Os desligados ficam guardados fora de vista e aparecem só nos dias em que você registrar uma entrada.</p>
-    <ul class="lib" id="libRows"></ul>
+    <h2 id="libTitle">Editar hábitos</h2>
+    <p class="hint">Veja e mude tudo num lugar só: ícone, nome, cor, assunto e se fica fixo na agenda. Cada mudança vale na hora. Marque vários para editar em massa.</p>
+    <div class="libtools">
+      <input type="search" id="libSearch" placeholder="Filtrar a lista por nome" autocomplete="off" aria-label="Filtrar a lista por nome">
+      <label class="tog sm"><input type="checkbox" id="libAll"><span>Marcar todos</span></label>
+    </div>
+    <div class="bulkbar hidden" id="bulkBar"></div>
+    <div class="libhead" aria-hidden="true"><span></span><span>Ícone</span><span>Nome</span><span>Cor</span><span>Assunto</span><span>Na agenda</span><span></span></div>
+    <ul class="libgrid" id="libRows"></ul>
     <div class="actions">
       <button class="btn" id="libNew" type="button">+ Novo hábito</button>
       <span class="sp"></span>
       <button class="btn primary" id="closeLib" type="button">Pronto</button>
     </div>
+    <div class="epanel epop hidden" id="libEmoji"></div>
+    <div class="cpop hidden" id="libColor"></div>
   </div>
 </dialog>
 
@@ -878,7 +919,7 @@ function renderFilters(){
   ui.filter = f;
   let html = `<button class="tagchip all" type="button" data-tag="" aria-pressed="${!f.length}">Todos</button>`;
   html += state.tags.map(t => `<button class="tagchip" type="button" data-tag="${esc(t.id)}" style="--c:${t.color}" aria-pressed="${f.includes(t.id)}"><span class="dot"></span>${esc(t.name)}</button>`).join('');
-  html += `<button class="btn sm" type="button" id="manageHabits">Meus hábitos</button><button class="btn sm ghost" type="button" id="manageTags">Gerenciar assuntos</button>`;
+  html += `<button class="btn sm" type="button" id="manageHabits">Editar hábitos</button><button class="btn sm ghost" type="button" id="manageTags">Gerenciar assuntos</button>`;
   $('#filters').innerHTML = html;
   $('#filtersBadge').textContent = f.length ? f.length : '';
 }
@@ -1388,28 +1429,158 @@ $('#closeTags').onclick = () => tagsDlg.close();
 
 /* ---------- meus hábitos ---------- */
 const libDlg = $('#libDlg');
+const TRASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3"/></svg>';
+let libSel = new Set(), libPop = null, libEmojiPicker = null;
+const libList = () => { const q = nrm($('#libSearch').value.trim()); return state.habits.slice().sort(cmpHabits).filter(h => !q || hay(h).includes(q)); };
+const tagOptions = sel => state.tags.map(t => `<option value="${esc(t.id)}" ${t.id === sel ? 'selected' : ''}>${esc(t.name)}</option>`).join('') + `<option value="" ${tagById(sel) ? '' : 'selected'}>Sem assunto</option>`;
 function renderLib(){
-  const box = $('#libRows'), top = box.scrollTop;
-  box.innerHTML = state.habits.length ? state.habits.slice().sort(cmpHabits).map(h => {
-    const t = tagOf(h), on = pinned(h);
-    return `<li class="librow ${on ? '' : 'off'}" style="--c:${hc(h)}"><span class="cdot"></span>
-      <div class="meta"><b>${esc(h.emoji)} ${esc(h.name)}</b><small>${esc(t.name)}, ${isFree(h) ? 'quando eu fizer' : 'dias fixos'}</small></div>
+  const box = $('#libRows'), top = box.scrollTop, list = libList();
+  [...libSel].forEach(id => { if(!state.habits.some(h => h.id === id)) libSel.delete(id); });
+  box.innerHTML = list.length ? list.map(h => {
+    const on = pinned(h), sel = libSel.has(h.id);
+    return `<li class="lrw ${on ? '' : 'off'} ${sel ? 'sel' : ''}" style="--c:${hc(h)}">
+      <label class="lck"><input type="checkbox" data-sel="${h.id}" ${sel ? 'checked' : ''} aria-label="Selecionar ${esc(h.name)}"></label>
+      <button type="button" class="lemo" data-emo="${h.id}" aria-label="Trocar o ícone de ${esc(h.name)}">${esc(h.emoji)}</button>
+      <input type="text" class="lname" data-name="${h.id}" value="${esc(h.name)}" maxlength="60" aria-label="Nome do hábito">
+      <button type="button" class="lcol" data-col="${h.id}" aria-label="Trocar a cor de ${esc(h.name)}"><span class="sw"></span></button>
+      <select class="ltag" data-tag="${h.id}" aria-label="Assunto de ${esc(h.name)}">${tagOptions(h.tagId)}</select>
       <label class="tog sm"><input type="checkbox" data-pin="${h.id}" ${on ? 'checked' : ''} aria-label="Fixar ${esc(h.name)} na agenda"><span>Na agenda</span></label>
-      <button class="btn ghost iconbtn" style="border:0" type="button" data-libedit="${h.id}" aria-label="Editar ${esc(h.name)}">${PENCIL}</button></li>`;
-  }).join('') : '<li class="hint">Você ainda não criou nenhum hábito.</li>';
+      <span class="lact"><button class="btn ghost iconbtn" type="button" data-libedit="${h.id}" aria-label="Editar tudo de ${esc(h.name)}" title="Editar tudo (dias, período, anotação)">${PENCIL}</button><button class="btn ghost iconbtn" type="button" data-libdel="${h.id}" aria-label="Excluir ${esc(h.name)}" title="Excluir">${TRASH}</button></span>
+    </li>`;
+  }).join('') : `<li class="hint">${state.habits.length ? 'Nenhum hábito com esse nome.' : 'Você ainda não criou nenhum hábito.'}</li>`;
   box.scrollTop = top;
+  renderBulk();
+  const vis = list.map(h => h.id), all = $('#libAll');
+  all.checked = vis.length > 0 && vis.every(id => libSel.has(id));
+  all.indeterminate = !all.checked && vis.some(id => libSel.has(id));
 }
-function openLib(){ renderLib(); libDlg.showModal(); }
-$('#libRows').addEventListener('change', e => {
-  const c = e.target.closest('[data-pin]'); if(!c) return;
-  const h = state.habits.find(x => x.id === c.dataset.pin); if(!h) return;
-  h.pinned = c.checked; save(); renderLib(); renderView();
+function renderBulk(){
+  const bar = $('#bulkBar'), n = libSel.size;
+  bar.classList.toggle('hidden', !n);
+  if(!n) return;
+  bar.innerHTML = `<b class="bcount">${n} ${n === 1 ? 'selecionado' : 'selecionados'}</b>
+    <select id="bulkTag" aria-label="Mudar o assunto dos selecionados"><option value="__" selected disabled>Mudar assunto…</option>${state.tags.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}<option value="">Sem assunto</option></select>
+    <button type="button" class="btn sm" data-bulk="color">Cor…</button>
+    <button type="button" class="btn sm" data-bulk="emoji">Ícone…</button>
+    <button type="button" class="btn sm" data-bulk="pin">Fixar na agenda</button>
+    <button type="button" class="btn sm" data-bulk="unpin">Guardar</button>
+    <button type="button" class="btn sm danger" data-bulk="del">Excluir</button>
+    <button type="button" class="btn sm ghost" data-bulk="clear">Limpar seleção</button>`;
+}
+const libChanged = () => { save(); renderLib(); renderView(); };
+function deleteHabits(ids){
+  state.habits = state.habits.filter(h => !ids.includes(h.id));
+  Object.keys(state.done).forEach(ds => { ids.forEach(id => delete state.done[ds][id]); if(!Object.keys(state.done[ds]).length) delete state.done[ds]; });
+  ids.forEach(id => libSel.delete(id));
+  libChanged();
+}
+function applyColor(ids, c){ state.habits.forEach(h => { if(ids.includes(h.id)) h.color = c; }); libChanged(); }
+function applyEmoji(ids, em){ pushRecent(em); state.habits.forEach(h => { if(ids.includes(h.id)) h.emoji = em; }); libChanged(); }
+
+/* seletor de emoji reutilizável (com busca e abas) */
+function buildEmojiPicker(root, onPick){
+  root.innerHTML = '<div class="esearch"><input type="search" placeholder="Buscar emoji pelo nome" autocomplete="off" aria-label="Buscar emoji"></div><div class="etabs" role="tablist"></div><div class="ecat"></div><div class="egrid"></div>';
+  const input = root.querySelector('input'), tabs = root.querySelector('.etabs'), catEl = root.querySelector('.ecat'), grid = root.querySelector('.egrid');
+  let cur = 'smileys';
+  function draw(){
+    const q = input.value.trim(), hasRecent = recents().length > 0;
+    if(cur === 'recent' && !hasRecent) cur = 'smileys';
+    tabs.innerHTML = EMOJI_CATS.filter(c => c.id !== 'recent' || hasRecent).map(c => `<button type="button" role="tab" data-cat="${c.id}" aria-selected="${!q && c.id === cur}" aria-label="${c.label}" title="${c.label}">${c.icon}</button>`).join('');
+    let list;
+    if(q){ list = searchEmoji(q); catEl.textContent = `Resultados (${list.length})`; }
+    else { catEl.textContent = EMOJI_CATS.find(c => c.id === cur).label; list = cur === 'recent' ? recents() : EMOJI_DATA[cur].split(' '); }
+    grid.innerHTML = list.length ? list.map(em => `<button type="button" data-e="${em}">${em}</button>`).join('') : '<div class="vazio">Nenhum emoji encontrado. Tente outra palavra.</div>';
+    grid.scrollTop = 0;
+  }
+  input.addEventListener('input', draw);
+  input.addEventListener('keydown', e => { if(e.key === 'Enter') e.preventDefault(); });
+  tabs.addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if(b){ cur = b.dataset.cat; input.value = ''; draw(); } });
+  grid.addEventListener('click', e => { const b = e.target.closest('[data-e]'); if(b) onPick(b.dataset.e); });
+  return { reset(){ input.value = ''; cur = recents().length ? 'recent' : 'smileys'; draw(); } };
+}
+function placePop(pop, btn){
+  pop.classList.remove('hidden');
+  const r = btn.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+  const left = Math.min(Math.max(8, r.left), window.innerWidth - pw - 8);
+  let top = r.bottom + 8; if(top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 8);
+  pop.style.left = left + 'px'; pop.style.top = top + 'px';
+}
+function closeLibPops(){ $('#libEmoji').classList.add('hidden'); $('#libColor').classList.add('hidden'); libPop = null; }
+function openLibEmoji(btn, ids){
+  closeLibPops(); libPop = {kind: 'emoji', ids};
+  if(!libEmojiPicker) libEmojiPicker = buildEmojiPicker($('#libEmoji'), em => { const t = libPop ? libPop.ids : []; closeLibPops(); applyEmoji(t, em); });
+  libEmojiPicker.reset(); placePop($('#libEmoji'), btn);
+}
+function openLibColor(btn, ids){
+  closeLibPops(); libPop = {kind: 'color', ids};
+  const cur = ids.length === 1 ? ((state.habits.find(h => h.id === ids[0]) || {}).color || '') : '';
+  const custom = !!cur && !pal().some(c => c.toLowerCase() === cur.toLowerCase());
+  const pop = $('#libColor');
+  pop.innerHTML = `<div class="swatches">${pal().map(c => `<button type="button" class="swatch" style="--c:${c}" data-c="${c}" aria-pressed="${!!cur && c.toLowerCase() === cur.toLowerCase()}" aria-label="Cor ${c}"></button>`).join('')}<label class="swatch rainbow ${custom ? 'sel' : ''}" style="--c:${cur || '#EE4B27'}" title="Outra cor"><input type="color" data-ccustom value="${(cur || '#ee4b27').toLowerCase()}" aria-label="Outra cor"></label></div>`;
+  placePop(pop, btn);
+}
+function openLib(){
+  libSel.clear(); $('#libSearch').value = ''; closeLibPops();
+  renderLib(); libDlg.showModal();
+}
+$('#libSearch').addEventListener('input', renderLib);
+$('#libAll').addEventListener('change', e => {
+  const ids = libList().map(h => h.id);
+  ids.forEach(id => e.target.checked ? libSel.add(id) : libSel.delete(id));
+  renderLib();
 });
 $('#libRows').addEventListener('click', e => {
-  const b = e.target.closest('[data-libedit]'); if(b){ libDlg.close(); openHabit(b.dataset.libedit); }
+  const emo = e.target.closest('[data-emo]'); if(emo){ openLibEmoji(emo, [emo.dataset.emo]); return; }
+  const col = e.target.closest('[data-col]'); if(col){ openLibColor(col, [col.dataset.col]); return; }
+  const ed = e.target.closest('[data-libedit]'); if(ed){ libDlg.close(); openHabit(ed.dataset.libedit); return; }
+  const del = e.target.closest('[data-libdel]');
+  if(del){ const h = state.habits.find(x => x.id === del.dataset.libdel); if(h && confirm(`Excluir “${h.name}” e todo o histórico dele?`)) deleteHabits([h.id]); }
 });
+$('#libRows').addEventListener('change', e => {
+  const sel = e.target.closest('[data-sel]');
+  if(sel){ sel.checked ? libSel.add(sel.dataset.sel) : libSel.delete(sel.dataset.sel); renderLib(); return; }
+  const nm = e.target.closest('[data-name]'); if(nm){ if(!nm.value.trim()) renderLib(); return; }
+  const pin = e.target.closest('[data-pin]');
+  if(pin){ const h = state.habits.find(x => x.id === pin.dataset.pin); if(h){ h.pinned = pin.checked; libChanged(); } return; }
+  const tg = e.target.closest('[data-tag]');
+  if(tg){ const h = state.habits.find(x => x.id === tg.dataset.tag); if(h){ h.tagId = tg.value; libChanged(); } }
+});
+$('#libRows').addEventListener('input', e => {
+  const nm = e.target.closest('[data-name]'); if(!nm) return;
+  const h = state.habits.find(x => x.id === nm.dataset.name), v = nm.value.trim();
+  if(h && v){ h.name = v; save(); renderView(); }
+});
+$('#libRows').addEventListener('scroll', closeLibPops);
+$('#bulkBar').addEventListener('click', e => {
+  const b = e.target.closest('[data-bulk]'); if(!b) return;
+  const ids = [...libSel], act = b.dataset.bulk;
+  if(act === 'color') openLibColor(b, ids);
+  else if(act === 'emoji') openLibEmoji(b, ids);
+  else if(act === 'pin' || act === 'unpin'){ state.habits.forEach(h => { if(libSel.has(h.id)) h.pinned = act === 'pin'; }); libChanged(); }
+  else if(act === 'del'){ if(confirm(`Excluir ${ids.length} ${ids.length === 1 ? 'hábito' : 'hábitos'} e todo o histórico ${ids.length === 1 ? 'dele' : 'deles'}?`)) deleteHabits(ids); }
+  else if(act === 'clear'){ libSel.clear(); renderLib(); }
+});
+$('#bulkBar').addEventListener('change', e => {
+  if(e.target.id !== 'bulkTag' || e.target.value === '__') return;
+  const v = e.target.value;
+  state.habits.forEach(h => { if(libSel.has(h.id)) h.tagId = v; });
+  libChanged();
+});
+$('#libColor').addEventListener('click', e => {
+  const c = e.target.closest('[data-c]'); if(!c) return;
+  const ids = libPop ? libPop.ids : []; closeLibPops(); applyColor(ids, c.dataset.c);
+});
+$('#libColor').addEventListener('input', e => { if(e.target.matches('[data-ccustom]') && libPop) applyColor(libPop.ids, e.target.value.toUpperCase()); });
+$('#libColor').addEventListener('change', e => { if(e.target.matches('[data-ccustom]')) closeLibPops(); });
+libDlg.addEventListener('click', e => {
+  if(!libPop) return;
+  const inPop = e.composedPath().some(n => n.id === 'libEmoji' || n.id === 'libColor');
+  if(!inPop && !e.target.closest('[data-emo],[data-col],[data-bulk="color"],[data-bulk="emoji"]')) closeLibPops();
+});
+libDlg.addEventListener('close', closeLibPops);
 $('#libNew').onclick = () => { libDlg.close(); openHabit(); };
 $('#closeLib').onclick = () => libDlg.close();
+$('#openLibBtn').addEventListener('click', () => { closeDD(); openLib(); });
 
 /* ---------- registrar entrada ---------- */
 const entryDlg = $('#entryDlg');
