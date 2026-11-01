@@ -79,6 +79,17 @@ button{cursor:pointer}
 .range{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .range label{display:flex;align-items:center;gap:6px;color:var(--muted);font:600 13px var(--f-body);letter-spacing:.08em;text-transform:uppercase}
 
+html{scrollbar-gutter:stable}
+body:has(dialog[open]){overflow:hidden}
+.dlg,.lib,.libgrid,.trows,.egrid,.sresults,.gridwrap,.etabs{scrollbar-width:thin;scrollbar-color:var(--ink) transparent}
+.dlg::-webkit-scrollbar,.lib::-webkit-scrollbar,.libgrid::-webkit-scrollbar,.trows::-webkit-scrollbar,.egrid::-webkit-scrollbar,.sresults::-webkit-scrollbar,.gridwrap::-webkit-scrollbar,.etabs::-webkit-scrollbar{width:10px;height:10px}
+.dlg::-webkit-scrollbar-thumb,.lib::-webkit-scrollbar-thumb,.libgrid::-webkit-scrollbar-thumb,.trows::-webkit-scrollbar-thumb,.egrid::-webkit-scrollbar-thumb,.sresults::-webkit-scrollbar-thumb,.gridwrap::-webkit-scrollbar-thumb,.etabs::-webkit-scrollbar-thumb{background:var(--ink);border-radius:99px;border:2px solid var(--paper)}
+.dlg::-webkit-scrollbar-track,.lib::-webkit-scrollbar-track,.libgrid::-webkit-scrollbar-track,.trows::-webkit-scrollbar-track,.egrid::-webkit-scrollbar-track,.sresults::-webkit-scrollbar-track,.gridwrap::-webkit-scrollbar-track,.etabs::-webkit-scrollbar-track{background:transparent}
+.dlg::-webkit-scrollbar-track{margin:22px 0}
+/* janelas com lista: só a lista rola; título e botões ficam fixos */
+#libDlg .dlg,#entryDlg .dlg,#tagsDlg .dlg{display:flex;flex-direction:column;overflow:hidden}
+#libDlg .dlg>*,#entryDlg .dlg>*,#tagsDlg .dlg>*{flex:none}
+#libDlg .dlg>.libgrid,#entryDlg .dlg>.lib,#tagsDlg .dlg>.trows{flex:1 1 auto;min-height:110px;max-height:none}
 input[type=date],input[type=text],input[type=search],select,textarea{border:2.5px solid var(--ink);border-radius:14px;background-color:#fff;padding:10px 13px;width:100%;font:500 16px var(--f-body);box-shadow:3px 3px 0 var(--ink)}
 input::placeholder,textarea::placeholder{color:#9A8896;opacity:1}
 input:focus-visible,select:focus-visible,textarea:focus-visible{outline-offset:1px}
@@ -180,10 +191,10 @@ table.grid{border-collapse:separate;border-spacing:0;width:100%}
 footer{margin-top:36px;padding-top:16px;border-top:3px dotted var(--ink);color:var(--muted);font:500 14px/1.4 var(--f-body);display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
 
 /* janelas */
-dialog{border:3px solid var(--ink);border-radius:28px;padding:0;width:min(580px,calc(100vw - 28px));max-height:calc(100vh - 28px);color:var(--ink);background-color:var(--paper);
+dialog{overflow:hidden;border:3px solid var(--ink);border-radius:28px;padding:0;width:min(580px,calc(100vw - 28px));max-height:calc(100vh - 28px);color:var(--ink);background-color:var(--paper);
   box-shadow:0 0 0 8px var(--pink),0 0 0 11px var(--ink),10px 14px 0 11px rgba(37,27,45,.3)}
 dialog::backdrop{background:radial-gradient(circle at 2px 2px,rgba(255,248,228,.16) 1.6px,transparent 2.2px) 0 0/16px 16px,rgba(37,27,45,.62)}
-.dlg{position:relative;padding:26px 24px 22px;display:grid;gap:18px}
+.dlg{position:relative;padding:26px 24px 22px;display:grid;gap:18px;max-height:calc(100vh - 34px);overflow-y:auto;overscroll-behavior:contain}
 .dlg h2{font-size:34px;line-height:1.05}
 .field{display:grid;gap:7px}
 .field>label,.field>span.l,.lhead .l{font:600 13px/1.2 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
@@ -453,7 +464,7 @@ dialog#libDlg{width:min(1040px,calc(100vw - 28px))}
       </div>
     </div>
     <div class="dd" id="ddFilters">
-      <button class="btn ddbtn" type="button" data-dd="Filters" aria-expanded="false" aria-controls="panelFilters">Filtros <span class="badge" id="filtersBadge"></span><svg class="caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      <button class="btn ddbtn" type="button" data-dd="Filters" aria-expanded="false" aria-controls="panelFilters">Filtros <svg class="caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="ddpanel wide hidden" id="panelFilters">
         <section class="filters" id="filters" aria-label="Filtrar por assunto"></section>
       </div>
@@ -921,7 +932,6 @@ function renderFilters(){
   html += state.tags.map(t => `<button class="tagchip" type="button" data-tag="${esc(t.id)}" style="--c:${t.color}" aria-pressed="${f.includes(t.id)}"><span class="dot"></span>${esc(t.name)}</button>`).join('');
   html += `<button class="btn sm" type="button" id="manageHabits">Editar hábitos</button><button class="btn sm ghost" type="button" id="manageTags">Gerenciar assuntos</button>`;
   $('#filters').innerHTML = html;
-  $('#filtersBadge').textContent = f.length ? f.length : '';
 }
 
 function renderLayers(){
