@@ -35,10 +35,14 @@ button{cursor:pointer}
   box-shadow:0 0 0 9px var(--green),0 0 0 12px var(--ink),0 0 0 21px var(--yellow),0 0 0 24px var(--ink),0 0 0 33px var(--pink),0 0 0 36px var(--ink),12px 16px 0 36px rgba(37,27,45,.22)}
 
 /* capa */
-.top{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:0 0 26px;padding:30px 30px 26px;border:3px solid var(--ink);border-radius:26px;background:var(--red);box-shadow:6px 6px 0 var(--ink);overflow:hidden}
+.top{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:0 0 26px;padding:30px 30px 26px;border:3px solid var(--ink);border-radius:26px;background:var(--tb,var(--red));box-shadow:6px 6px 0 var(--ink);overflow:hidden}
 .top::before{content:'';position:absolute;right:-34px;top:-46px;width:190px;height:190px;border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle,var(--yellow) 0 36%,var(--ink) 36% 39%,var(--orange) 39% 60%,var(--ink) 60% 63%,var(--pink) 63% 100%)}
+  background:radial-gradient(circle,var(--tc,var(--yellow)) 0 36%,var(--ink) 36% 39%,var(--orange) 39% 60%,var(--ink) 60% 63%,var(--to,var(--pink)) 63% 100%)}
 .top>*{position:relative;z-index:1}
+.top[data-period="morning"]{--tb:var(--yellow);--tc:var(--red);--to:var(--green)}
+.top[data-period="morning"] .eyebrow{background:var(--paper)}
+.top[data-period="morning"] .btn.primary{background-color:var(--red);color:#fff}
+.top[data-period="night"]{--tb:var(--blue)}
 .top h1{font-size:clamp(44px,7.4vw,86px);line-height:.98;color:var(--paper);-webkit-text-stroke:2.5px var(--ink);paint-order:stroke fill;text-shadow:4px 4px 0 var(--ink)}
 .top p{margin:8px 0 0}
 .top .eyebrow{display:inline-block;margin:0 0 14px;padding:5px 13px;transform:rotate(-3deg);background:var(--yellow);border:2.5px solid var(--ink);border-radius:9px;box-shadow:3px 3px 0 var(--ink);font:600 13px/1.2 var(--f-body);letter-spacing:.14em;text-transform:uppercase}
@@ -850,6 +854,7 @@ function addEntry(hid, ds, delta){
 function renderHeader(){
   const h = new Date().getHours();
   $('#greet').textContent = h < 5 ? 'Boa madrugada' : h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+  document.querySelector('.top').dataset.period = h >= 5 && h < 12 ? 'morning' : h >= 12 && h < 18 ? 'afternoon' : 'night';
   $('#todayline').textContent = cap(new Date().toLocaleDateString('pt-BR',{weekday:'long', day:'numeric', month:'long'}));
 }
 
@@ -1683,7 +1688,7 @@ $('#importFile').addEventListener('change', e => {
 renderAll();
 // atualiza o "hoje" se a aba ficar aberta de um dia para o outro
 let lastDay = fmt(today());
-setInterval(() => { const n = fmt(today()); if(n !== lastDay){ lastDay = n; renderHeader(); renderView(); } }, 60000);
+setInterval(() => { renderHeader(); const n = fmt(today()); if(n !== lastDay){ lastDay = n; renderView(); } }, 60000);
 })();
 </script>
 </body>
