@@ -826,11 +826,15 @@ const hueKey = hex => {
   h *= 60; if(h < 0) h += 360;
   return h;
 };
+const tagKey = h => tagById(h.tagId) ? h.tagId : '';
+const colorCount = h => { const c = String(hc(h)).toLowerCase(), k = tagKey(h); return state.habits.filter(x => tagKey(x) === k && String(hc(x)).toLowerCase() === c).length; };
 const cmpHabits = (a, b) => {
   const ta = tagById(a.tagId), tb = tagById(b.tagId);
   if(!ta !== !tb) return ta ? -1 : 1;
   const byTag = ta && tb ? ta.name.localeCompare(tb.name, 'pt-BR', {sensitivity: 'base'}) : 0;
-  return byTag || hueKey(hc(a)) - hueKey(hc(b)) || String(hc(a)).localeCompare(String(hc(b))) || a.name.localeCompare(b.name, 'pt-BR', {sensitivity: 'base'});
+  if(byTag) return byTag;
+  // dentro do mesmo assunto: a cor com mais hábitos vem primeiro
+  return colorCount(b) - colorCount(a) || hueKey(hc(a)) - hueKey(hc(b)) || String(hc(a)).localeCompare(String(hc(b))) || a.name.localeCompare(b.name, 'pt-BR', {sensitivity: 'base'});
 };
 function visibleHabits(){
   const f = ui.filter.filter(id => tagIndex(id) >= 0);
