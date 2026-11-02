@@ -36,8 +36,7 @@ button{cursor:pointer}
 
 /* capa */
 .top{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:0 0 26px;padding:30px 30px 26px;border:3px solid var(--ink);border-radius:26px;background:var(--tb,var(--red));box-shadow:6px 6px 0 var(--ink);overflow:hidden}
-.top::before{content:'';position:absolute;right:-34px;top:-46px;width:190px;height:190px;border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle,var(--tc,var(--yellow)) 0 36%,var(--ink) 36% 39%,var(--orange) 39% 60%,var(--ink) 60% 63%,var(--to,var(--pink)) 63% 100%)}
+.top::before{content:'';position:absolute;right:13px;top:1px;width:96px;height:96px;border-radius:50%;pointer-events:none;background:var(--tc,var(--yellow));box-shadow:0 0 0 4px var(--ink),0 0 0 32px var(--orange),0 0 0 36px var(--ink),0 0 0 47px var(--to,var(--pink))}
 .top>*{position:relative;z-index:1}
 .top[data-period="morning"]{--tb:var(--yellow);--tc:var(--red);--to:var(--green)}
 .top[data-period="morning"] .eyebrow{background:var(--paper)}
@@ -410,7 +409,7 @@ dialog#libDlg{width:min(1040px,calc(100vw - 28px))}
   .wrap{width:calc(100% - 48px);margin:30px auto 56px;padding:22px 14px 36px;border-radius:24px;
     box-shadow:0 0 0 7px var(--green),0 0 0 9.5px var(--ink),0 0 0 16px var(--yellow),0 0 0 18.5px var(--ink),8px 10px 0 18.5px rgba(37,27,45,.22)}
   .top{padding:24px 18px 22px;border-radius:22px}
-  .top::before{width:130px;height:130px;right:-30px;top:-36px}
+  .top::before{width:66px;height:66px;right:2px;top:-4px;box-shadow:0 0 0 3px var(--ink),0 0 0 22px var(--orange),0 0 0 25px var(--ink),0 0 0 32px var(--to,var(--pink))}
   .mloc{display:none}
   .mbasic{display:none}
   .mc{min-height:72px;padding:4px;border-radius:12px;box-shadow:2px 2px 0 var(--ink)}
@@ -458,7 +457,7 @@ dialog#libDlg{width:min(1040px,calc(100vw - 28px))}
       </div>
     </div>
     <div class="dd" id="ddLayers">
-      <button class="btn ddbtn" type="button" data-dd="Layers" aria-expanded="false" aria-controls="panelLayers">Camadas <span class="badge" id="layersBadge"></span><svg class="caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      <button class="btn ddbtn" type="button" data-dd="Layers" aria-expanded="false" aria-controls="panelLayers">Camadas <svg class="caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="ddpanel wide hidden" id="panelLayers">
         <section class="layers" id="layers" aria-label="Camadas"></section>
       </div>
@@ -817,7 +816,22 @@ function activeSearch(){
   if(state.habits.some(h => hay(h).includes(q))) return q;
   return parseDateQuery(searchQ).length ? '' : q;
 }
-const cmpHabits = (a, b) => (tagIndex(a.tagId) + 1 || 999) - (tagIndex(b.tagId) + 1 || 999) || a.name.localeCompare(b.name, 'pt-BR');
+const hueKey = hex => {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
+  if(!m) return 9999;
+  const [r, g, b] = [1, 2, 3].map(i => parseInt(m[i], 16) / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  if(d < 0.08) return 1000 + (1 - mx) * 100;
+  let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  h *= 60; if(h < 0) h += 360;
+  return h;
+};
+const cmpHabits = (a, b) => {
+  const ta = tagById(a.tagId), tb = tagById(b.tagId);
+  if(!ta !== !tb) return ta ? -1 : 1;
+  const byTag = ta && tb ? ta.name.localeCompare(tb.name, 'pt-BR', {sensitivity: 'base'}) : 0;
+  return byTag || hueKey(hc(a)) - hueKey(hc(b)) || String(hc(a)).localeCompare(String(hc(b))) || a.name.localeCompare(b.name, 'pt-BR', {sensitivity: 'base'});
+};
 function visibleHabits(){
   const f = ui.filter.filter(id => tagIndex(id) >= 0);
   const sq = activeSearch();
@@ -945,7 +959,6 @@ function renderLayers(){
   }
   if(L.mac) leg += LEVELS.map(l => `<span class="lg">${leaf(l.id, 16)}${l.label}</span>`).join('');
   if(L.astro) leg += ASTRO_LEGEND.map(([g, t]) => `<span class="lg"><span class="ag">${g}</span>${t}</span>`).join('');
-  $('#layersBadge').textContent = `${Object.keys(L).filter(k => L[k]).length}/5`;
   $('#layers').innerHTML = `<div class="top2">${chip('habits', CHECK.replace('<svg', '<svg width="16" height="16"'), 'Hábitos')}${chip('local', '📍', 'Local')}${chip('mac', leaf('high', 18), 'Mac')}${chip('basics', '🪥', 'Basiquinhos')}${chip('astro', '✨', 'Astro')}${L.local ? '<button class="btn sm" id="openLocal" type="button">Definir local</button>' : ''}</div>${leg ? `<div class="legend">${leg}</div>` : ''}`;
 }
 
