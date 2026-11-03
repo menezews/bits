@@ -438,7 +438,8 @@ dialog#libDlg{width:min(1040px,calc(100vw - 28px))}
       <h1 id="greet">Olá</h1>
       <p id="todayline"></p>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="iconbtn" id="soundBtn" type="button" aria-pressed="true" aria-label="Sons ligados" title="Sons ligados"></button>
       <button class="btn" id="newEntry" type="button">Registrar entrada</button>
       <button class="btn primary" id="newHabit" type="button">+ Novo hábito</button>
     </div>
@@ -756,6 +757,91 @@ function loadUI(){
 }
 function saveUI(){ try { localStorage.setItem(UIKEY, JSON.stringify(ui)); } catch(e){} }
 
+/* ---------- efeitos sonoros (sintetizados, sem arquivos) ---------- */
+const SND_KEY = 'agenda-habitos-sound';
+let sfxOn = true, actx = null, master = null, lastSfxAt = 0;
+try { sfxOn = localStorage.getItem(SND_KEY) !== 'off'; } catch(e){}
+function audio(){
+  if(!sfxOn) return null;
+  if(!actx){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return null;
+    actx = new AC();
+    const comp = actx.createDynamicsCompressor();
+    comp.threshold.value = -20; comp.ratio.value = 6; comp.attack.value = .003; comp.release.value = .12;
+    master = actx.createGain(); master.gain.value = .9;
+    master.connect(comp); comp.connect(actx.destination);
+  }
+  if(actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function tone({f, f2, type = 'sine', dur = .12, vol = .15, delay = 0, attack = .006}){
+  const c = audio(); if(!c) return;
+  const t0 = c.currentTime + delay, o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  if(f2 && f2 !== f) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+  g.gain.setValueAtTime(.0001, t0);
+  g.gain.exponentialRampToValueAtTime(Math.min(vol * 2.2, .9), t0 + attack);
+  g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+  o.connect(g); g.connect(master);
+  o.start(t0); o.stop(t0 + dur + .03);
+}
+function swoosh({from = 500, to = 2500, dur = .16, vol = .07, delay = 0}){
+  const c = audio(); if(!c) return;
+  const t0 = c.currentTime + delay, len = Math.max(1, Math.floor(c.sampleRate * dur));
+  const buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+  for(let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const src = c.createBufferSource(); src.buffer = buf;
+  const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.2;
+  bp.frequency.setValueAtTime(from, t0); bp.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+  const g = c.createGain();
+  g.gain.setValueAtTime(.0001, t0);
+  g.gain.exponentialRampToValueAtTime(Math.min(vol * 5, .9), t0 + dur * .35);
+  g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+  src.connect(bp); bp.connect(g); g.connect(master); src.start(t0);
+}
+const SFX = {
+  tick(){ tone({f: 1500, f2: 1100, type: 'triangle', dur: .045, vol: .09}); },
+  pop(){ tone({f: 520, f2: 900, dur: .08, vol: .22}); },
+  check(){ tone({f: 784, f2: 1175, dur: .11, vol: .2}); tone({f: 1175, f2: 1568, dur: .16, vol: .17, delay: .07}); tone({f: 2349, type: 'triangle', dur: .12, vol: .05, delay: .08}); },
+  uncheck(){ tone({f: 466, f2: 311, dur: .14, vol: .22}); },
+  add(){ tone({f: 440, f2: 740, dur: .1, vol: .24}); },
+  sub(){ tone({f: 520, f2: 310, dur: .1, vol: .2}); },
+  water(){ tone({f: 320, f2: 760, dur: .12, vol: .17}); tone({f: 420, f2: 980, dur: .09, vol: .1, delay: .07}); },
+  coin(){ tone({f: 988, type: 'square', dur: .07, vol: .06}); tone({f: 1319, type: 'square', dur: .2, vol: .06, delay: .07}); },
+  open(){ swoosh({from: 600, to: 2200, dur: .12, vol: .06}); tone({f: 520, f2: 760, dur: .1, vol: .14}); },
+  close(){ swoosh({from: 2000, to: 500, dur: .1, vol: .05}); tone({f: 700, f2: 440, dur: .1, vol: .12}); },
+  on(){ tone({f: 620, f2: 830, dur: .08, vol: .14}); tone({f: 930, f2: 1240, dur: .1, vol: .13, delay: .06}); },
+  off(){ tone({f: 830, f2: 620, dur: .08, vol: .12}); tone({f: 560, f2: 400, dur: .1, vol: .11, delay: .06}); },
+  view(){ swoosh({from: 500, to: 3000, dur: .16, vol: .07}); tone({f: 900, f2: 1300, type: 'triangle', dur: .06, vol: .05}); },
+  nav(){ swoosh({from: 900, to: 1800, dur: .07, vol: .06}); tone({f: 1100, type: 'triangle', dur: .03, vol: .04}); },
+  save(){ [523, 659, 784, 1046].forEach((f, i) => tone({f, type: 'triangle', dur: .14, vol: .14, delay: i * .06})); tone({f: 2093, dur: .2, vol: .04, delay: .2}); },
+  del(){ tone({f: 200, f2: 70, dur: .22, vol: .22}); tone({f: 300, f2: 120, type: 'triangle', dur: .12, vol: .06}); },
+  celebrate(){ [523, 659, 784, 1046, 1319, 1568].forEach((f, i) => tone({f, type: 'triangle', dur: .18, vol: .13, delay: i * .07})); [2093, 2637, 3136].forEach((f, i) => tone({f, dur: .14, vol: .035, delay: .32 + i * .05})); },
+  error(){ tone({f: 200, type: 'square', dur: .09, vol: .045}); tone({f: 160, type: 'square', dur: .12, vol: .045, delay: .1}); }
+};
+function sfx(name){ lastSfxAt = performance.now(); try { if(SFX[name]) SFX[name](); } catch(e){} }
+const SPK_ON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
+const SPK_OFF = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';
+function renderSound(){
+  const b = document.getElementById('soundBtn');
+  b.setAttribute('aria-pressed', String(sfxOn));
+  b.setAttribute('aria-label', sfxOn ? 'Sons ligados' : 'Sons desligados');
+  b.title = sfxOn ? 'Sons ligados' : 'Sons desligados';
+  b.innerHTML = sfxOn ? SPK_ON : SPK_OFF;
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('button, label.tog, select, .swatch, [role="tab"]');
+  if(!t || t.id === 'soundBtn') return;
+  const stamp = performance.now();
+  setTimeout(() => { if(lastSfxAt < stamp) sfx('tick'); }, 0);
+}, true);
+if(window.HTMLDialogElement){
+  const _show = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function(){ sfx('open'); return _show.call(this); };
+  document.addEventListener('close', () => { if(performance.now() - lastSfxAt > 150) sfx('close'); }, true);
+}
+
 let state = load();
 let ui = loadUI();
 let anchor = today();
@@ -856,9 +942,12 @@ function eachDay([s,e], max = 400){ const out = []; for(let d = s; d <= e && out
 /* ---------- ações ---------- */
 function toggle(hid, ds){
   const day = state.done[ds] || (state.done[ds] = {});
-  if(day[hid]) delete day[hid]; else day[hid] = true;
+  const was = !!day[hid];
+  if(was) delete day[hid]; else day[hid] = true;
   if(!Object.keys(day).length) delete state.done[ds];
   save(); renderView();
+  if(was) sfx('uncheck');
+  else { const sch = state.habits.filter(h => scheduled(h, ds)); sfx(sch.length > 1 && sch.every(h => isDone(h, ds)) ? 'celebrate' : 'check'); }
 }
 
 const LEVELS = [{id:'none', label:'Não fumei'}, {id:'low', label:'Pouco'}, {id:'mid', label:'Médio'}, {id:'high', label:'Bastante'}];
@@ -886,8 +975,9 @@ function setBasic(ds, id, v){
   save(); renderView();
 }
 function adjBasic(ds, id, delta){
-  if(id === 'shower'){ setBasic(ds, id, bval(ds, id) ? 0 : 1); return; }
+  if(id === 'shower'){ const on = !bval(ds, id); setBasic(ds, id, on ? 1 : 0); sfx(on ? 'check' : 'uncheck'); return; }
   setBasic(ds, id, Math.min(id === 'water' ? 20000 : 99, Math.max(0, bval(ds, id) + delta)));
+  sfx(delta > 0 ? (id === 'water' ? 'water' : 'add') : 'sub');
 }
 function basicsLine(ds){
   return BASICS.filter(b => bval(ds, b.id)).map(b => b.id === 'shower' ? b.icon : `${b.icon}${b.id === 'water' ? fmtL(bval(ds, b.id)) : bval(ds, b.id)}`).join(' ');
@@ -908,8 +998,10 @@ function astroSym(x){
 }
 const ASTRO_LEGEND = [['🌑','Lua nova'],['🌕','Lua cheia'],['℞','Retrógrado'],['➜','Entrada em signo'],['□','Quadratura'],['△','Trígono'],['☍','Oposição'],['☌','Conjunção']];
 function setMac(ds, lv, toggle = true){
-  if(!lv || (toggle && state.mac[ds] === lv)) delete state.mac[ds]; else state.mac[ds] = lv;
+  const clear = !lv || (toggle && state.mac[ds] === lv);
+  if(clear) delete state.mac[ds]; else state.mac[ds] = lv;
   save(); renderView();
+  sfx(clear ? 'sub' : lv === 'none' ? 'coin' : 'add');
 }
 
 function addEntry(hid, ds, delta){
@@ -918,6 +1010,7 @@ function addEntry(hid, ds, delta){
   if(n) day[hid] = n; else delete day[hid];
   if(!Object.keys(day).length) delete state.done[ds];
   save(); renderView();
+  sfx(delta > 0 ? 'add' : 'sub');
 }
 
 /* ---------- renderização ---------- */
@@ -1129,18 +1222,18 @@ function renderAll(){ renderHeader(); renderToolbar(); renderFilters(); renderVi
 /* ---------- eventos: topo ---------- */
 $('#seg').addEventListener('click', e => {
   const b = e.target.closest('button[data-view]'); if(!b) return;
-  ui.view = b.dataset.view; saveUI(); closeDD(); renderToolbar(); renderView();
+  ui.view = b.dataset.view; saveUI(); closeDD(); renderToolbar(); renderView(); sfx('view');
   if(ui.view === 'range'){ const t = document.querySelector('.grid th.today'); if(t) t.scrollIntoView({inline:'center', block:'nearest'}); }
 });
 function step(n){
   if(ui.view === 'day') anchor = addDays(anchor, n);
   else if(ui.view === 'week') anchor = addDays(anchor, 7 * n);
   else if(ui.view === 'month') anchor = new Date(anchor.getFullYear(), anchor.getMonth() + n, 1);
-  renderToolbar(); renderView();
+  renderToolbar(); renderView(); sfx('nav');
 }
 $('#prev').onclick = () => step(-1);
 $('#next').onclick = () => step(1);
-$('#goToday').onclick = () => { anchor = today(); renderToolbar(); renderView(); };
+$('#goToday').onclick = () => { anchor = today(); renderToolbar(); renderView(); sfx('nav'); };
 $('#newHabit').onclick = () => openHabit();
 
 $('#rStart').addEventListener('change', e => {
@@ -1167,7 +1260,7 @@ $('#layers').addEventListener('click', e => {
   if(e.target.closest('#openLocal')){ closeDD(); openLocal(); return; }
   const b = e.target.closest('[data-layer]'); if(!b) return;
   ui.layers[b.dataset.layer] = !ui.layers[b.dataset.layer];
-  saveUI(); renderView();
+  saveUI(); renderView(); sfx(ui.layers[b.dataset.layer] ? 'on' : 'off');
 });
 
 $('#filters').addEventListener('click', e => {
@@ -1331,7 +1424,7 @@ $('#emojiSearch').addEventListener('keydown', e => { if(e.key === 'Enter') e.pre
 $('#emojiTabs').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if(b){ emojiCat = b.dataset.cat; $('#emojiSearch').value = ''; renderEmojiPicker(); } });
 $('#emojiGrid').addEventListener('click', e => {
   const b = e.target.closest('[data-e]'); if(!b) return;
-  setEmoji(b.dataset.e); pushRecent(b.dataset.e); toggleEmojiPanel(false);
+  setEmoji(b.dataset.e); pushRecent(b.dataset.e); toggleEmojiPanel(false); sfx('pop');
 });
 $('#fTag').addEventListener('change', () => {
   syncNewTag();
@@ -1384,18 +1477,18 @@ $('#delHabit').onclick = () => {
   if(!confirm(`Excluir “${h.name}” e todo o histórico dele?`)) return;
   state.habits = state.habits.filter(x => x.id !== h.id);
   Object.keys(state.done).forEach(ds => { delete state.done[ds][h.id]; if(!Object.keys(state.done[ds]).length) delete state.done[ds]; });
-  save(); habitDlg.close(); renderView();
+  sfx('del'); save(); habitDlg.close(); renderView();
 };
 $('#habitForm').addEventListener('submit', e => {
   e.preventDefault();
   const free = mode === 'free';
   const name = $('#fName').value.trim(), days = free ? [] : getDays();
-  if(!name){ $('#habitErr').textContent = 'Dê um nome ao hábito.'; return; }
-  if(!free && !days.length){ $('#habitErr').textContent = 'Escolha pelo menos um dia da semana.'; return; }
+  if(!name){ $('#habitErr').textContent = 'Dê um nome ao hábito.'; sfx('error'); return; }
+  if(!free && !days.length){ $('#habitErr').textContent = 'Escolha pelo menos um dia da semana.'; sfx('error'); return; }
   let tagId = $('#fTag').value;
   if(tagId === '__new'){
     const tn = $('#fNewTag').value.trim();
-    if(!tn){ $('#habitErr').textContent = 'Dê um nome ao novo assunto.'; return; }
+    if(!tn){ $('#habitErr').textContent = 'Dê um nome ao novo assunto.'; sfx('error'); return; }
     const exist = state.tags.find(t => t.name.toLowerCase() === tn.toLowerCase());
     if(exist) tagId = exist.id;
     else { tagId = uid(); state.tags.push({id:tagId, name:tn, color:formColor}); }
@@ -1403,7 +1496,7 @@ $('#habitForm').addEventListener('submit', e => {
   const data = { name, color: formColor, pinned: $('#fPinned').checked, mode: free ? 'free' : 'fixed', emoji: $('#fEmoji').value || '🌱', tagId, days, period: $('#fPeriod').value, start: $('#fStart').value || fmt(today()), note: $('#fNote').value.trim() };
   if(editingId) Object.assign(state.habits.find(x => x.id === editingId), data);
   else state.habits.push(Object.assign({id: uid()}, data));
-  save(); habitDlg.close(); renderFilters(); renderView();
+  sfx('save'); save(); habitDlg.close(); renderFilters(); renderView();
 });
 
 /* ---------- janela de assuntos ---------- */
@@ -1496,13 +1589,14 @@ function renderBulk(){
 }
 const libChanged = () => { save(); renderLib(); renderView(); };
 function deleteHabits(ids){
+  sfx('del');
   state.habits = state.habits.filter(h => !ids.includes(h.id));
   Object.keys(state.done).forEach(ds => { ids.forEach(id => delete state.done[ds][id]); if(!Object.keys(state.done[ds]).length) delete state.done[ds]; });
   ids.forEach(id => libSel.delete(id));
   libChanged();
 }
 function applyColor(ids, c){ state.habits.forEach(h => { if(ids.includes(h.id)) h.color = c; }); libChanged(); }
-function applyEmoji(ids, em){ pushRecent(em); state.habits.forEach(h => { if(ids.includes(h.id)) h.emoji = em; }); libChanged(); }
+function applyEmoji(ids, em){ sfx('pop'); pushRecent(em); state.habits.forEach(h => { if(ids.includes(h.id)) h.emoji = em; }); libChanged(); }
 
 /* seletor de emoji reutilizável (com busca e abas) */
 function buildEmojiPicker(root, onPick){
@@ -1786,7 +1880,7 @@ $('#localApply').onclick = () => {
   const days = localDays(); if(!days) return;
   if(!lpSel){ $('#localErr').textContent = 'Escolha um local.'; return; }
   days.forEach(ds => { state.local[ds] = lpSel; });
-  save(); localDlg.close(); renderView();
+  sfx('save'); save(); localDlg.close(); renderView();
 };
 $('#localClear').onclick = () => {
   const days = localDays(); if(!days) return;
@@ -1804,6 +1898,7 @@ $('#controls').addEventListener('click', e => {
   const b = e.target.closest('[data-dd]'); if(!b) return;
   const panel = $('#panel' + b.dataset.dd), wasOpen = !panel.classList.contains('hidden');
   closeDD();
+  sfx(wasOpen ? 'close' : 'open');
   if(!wasOpen){
     panel.classList.remove('hidden'); b.setAttribute('aria-expanded', 'true');
     if(searchOpen){ searchOpen = false; renderSearch(); }
@@ -1835,6 +1930,7 @@ function goDate(it){
   anchor = it.kind === 'month' ? new Date(it.d.getFullYear(), it.d.getMonth(), 1) : it.d;
   saveUI(); searchQ = ''; qEl.value = ''; searchOpen = false;
   renderSearch(); renderToolbar(); renderView();
+  sfx('nav');
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
 qEl.addEventListener('input', () => { searchQ = qEl.value; searchOpen = true; closeDD(); renderSearch(); renderView(); });
@@ -1860,6 +1956,14 @@ document.addEventListener('click', e => {
   if(searchOpen && !e.composedPath().includes($('#search'))){ searchOpen = false; renderSearch(); }
 });
 
+/* ---------- botão de som ---------- */
+$('#soundBtn').addEventListener('click', () => {
+  sfxOn = !sfxOn;
+  try { localStorage.setItem(SND_KEY, sfxOn ? 'on' : 'off'); } catch(e){}
+  renderSound();
+  if(sfxOn) sfx('on');
+});
+
 /* ---------- backup ---------- */
 $('#export').onclick = () => {
   const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
@@ -1883,6 +1987,7 @@ $('#importFile').addEventListener('change', e => {
 });
 
 /* ---------- início ---------- */
+renderSound();
 renderAll();
 // atualiza o "hoje" se a aba ficar aberta de um dia para o outro
 let lastDay = fmt(today());
